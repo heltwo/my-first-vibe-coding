@@ -84,7 +84,13 @@ const scoreRecipe = (recipe, availableSet) => {
 
 const pickWeeklyPlan = (available) => {
   const availableSet = new Set(available.map(normalize));
-  const scored = RECIPES.map((recipe) => scoreRecipe(recipe, availableSet));
+  const scored = RECIPES.map((recipe) => scoreRecipe(recipe, availableSet))
+    .filter((recipe) => recipe.matched > 0);
+
+  if (scored.length === 0) {
+    return [];
+  }
+
   scored.sort((a, b) => {
     if (b.matched !== a.matched) return b.matched - a.matched;
     return a.missing.length - b.missing.length;
@@ -145,8 +151,13 @@ const renderPlan = (plan) => {
 };
 
 const updateMeta = (plan, availableCount) => {
+  if (plan.length === 0) {
+    metaEl.textContent = '입력한 재료로 만들 수 있는 메뉴가 없습니다. 재료를 추가해보세요.';
+    return;
+  }
+
   const average = Math.round(
-    plan.reduce((sum, item) => sum + item.matched / item.total, 0) / plan.length * 100
+    (plan.reduce((sum, item) => sum + item.matched / item.total, 0) / plan.length) * 100
   );
   metaEl.textContent = `입력 재료 ${availableCount}개 기준 · 평균 충족률 ${average}%`;
 };
@@ -160,6 +171,12 @@ const generatePlan = () => {
   }
 
   const plan = pickWeeklyPlan(available);
+  if (plan.length === 0) {
+    scheduleEl.innerHTML = '';
+    updateMeta(plan, available.length);
+    return;
+  }
+
   renderPlan(plan);
   updateMeta(plan, available.length);
 };
@@ -195,4 +212,3 @@ resetBtn.addEventListener('click', () => {
 
 generateBtn.addEventListener('click', generatePlan);
 copyBtn.addEventListener('click', copyPlan);
-
